@@ -19,7 +19,7 @@ class ToyHead(nn.Module):
 
     def forward(self, x) -> torch.Tensor:
         x = self.fc(x)
-        return x
+        return x.squeeze()
 
 
 def test():

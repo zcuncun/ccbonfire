@@ -5,8 +5,6 @@
 toy_backbone.py
 """
 
-
-import logging
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -24,6 +22,7 @@ class ToyBackbone(nn.Module):
 
 
 def test():
+    import logging
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
     backbone = ToyBackbone()
