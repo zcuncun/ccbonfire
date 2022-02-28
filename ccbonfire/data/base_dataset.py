@@ -33,22 +33,27 @@ class BaseDataset(Dataset, metaclass=ABCMeta):
         if not self.initialized:
             self.init()
         key = self.keys[idx]
-        value = self.kv_map[key]
-        sample = self.get_sample(key, value)
+        sample = self.get_sample(key)
         return sample
 
-    def get_sample(self, key, value):
-        """获取数据并预处理, 失败返回权重为 0 的默认样本"""
-        is_bad = False
+    def get_sample(self, key):
+        """获取数据并预处理, 失败返回权重为 0 的默认样本
+        Args:
+            key : key in self.kv_map
+        """
+        valid = True
         try:
+            value = self.kv_map[key]
             sample = self.parse_sample(key, value)
         except Exception as e:
             logging.error(e)
-            is_bad = True
+            valid = False
             sample = self.fallback_sample()
+        # 预处理与增光
         for process in self.preprocess:
             sample = process(sample)
-        if is_bad:
+        # 无效数据
+        if not valid:
             sample["weight"] = 0
         return sample
 
@@ -64,12 +69,20 @@ class BaseDataset(Dataset, metaclass=ABCMeta):
     @abstractmethod
     def fallback_sample(self):
         """获取数据失败时返回 默认样本"""
-        return {"key": 0, "value": 0, "weight": 0}
+        pass
 
     @abstractmethod
     def parse_sample(self, key, value):
-        """从 key, value 解析样本"""
-        return {"key": key, "value": value, "weight": 1}
+        """从 key, value 获得样本的 "input", "label" 和 "weight"
+        Args:
+            key : key in self.kv_map
+            value: self.kv_map[key]
+        """
+        # Get "input" and "label" from key & value
+        # Example:
+        # return {"input": value["image"], "label":value["label"], "weight": 1}
+        pass
+        
 
 
 class ToyDataset(BaseDataset):
@@ -78,17 +91,16 @@ class ToyDataset(BaseDataset):
         self.kv_map_path = kv_map_path
 
     def init(self):
-        print("wandanle")
         with open(self.kv_map_path, "rb") as f:
             self.kv_map = pickle.load(f)
             self.keys = sorted(list(self.kv_map.keys()))
         self.initialized = True
 
     def fallback_sample(self):
-        return {"key": 0, "label": 0, "weight": 0}
+        return {"input": 0, "label": 0, "weight": 0}
 
     def parse_sample(self, key, value):
-        return {"key": key, "label": value, "weight": 1}
+        return {"input": key, "label": value, "weight": 1}
 
 
 if __name__ == "__main__":
